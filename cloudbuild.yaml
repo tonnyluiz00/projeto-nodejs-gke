@@ -25,8 +25,8 @@ steps:
       - '-c'
       - |
         kubectl get deployment helloworld-gke -n default && DEPLOYMENT_EXISTS=true || DEPLOYMENT_EXISTS=false;
-        echo "Deployment exists: $$DEPLOYMENT_EXISTS";
-        echo -e "DEPLOYMENT_EXISTS=$$DEPLOYMENT_EXISTS" > /temp-volume/env_vars.txt
+        echo "Deployment exists: $DEPLOYMENT_EXISTS";
+        echo -e "DEPLOYMENT_EXISTS=$DEPLOYMENT_EXISTS" > /temp-volume/env_vars.txt
     env:
       - 'CLOUDSDK_CONTAINER_CLUSTER=cluster-us-central1-nodejs'
       - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
