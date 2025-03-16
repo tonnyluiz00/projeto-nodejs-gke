@@ -36,6 +36,9 @@ steps:
   # Check if deployment exists
   - name: 'gcr.io/cloud-builders/kubectl'
     id: Check if deployment exists
+    volumes:
+      - name: 'workspace'
+        path: /workspace
     entrypoint: 'sh'
     args:
       - '-c'
@@ -47,14 +50,15 @@ steps:
       - 'CLOUDSDK_CONTAINER_CLUSTER=cluster-us-central1-nodejs'
       - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
       - 'CLOUDSDK_COMPUTE_REGION=us-central1'
-    volumes:
-      - name: 'workspace'
-        path: /workspace
+
     waitFor: ['Push']
 
   # Deploy or Restart the service
   - name: 'gcr.io/cloud-builders/kubectl'
     id: Deploy or Restart
+    volumes:
+      - name: 'workspace'
+        path: /workspace
     entrypoint: 'sh'
     args:
       - '-c'
@@ -70,9 +74,6 @@ steps:
       - 'CLOUDSDK_CONTAINER_CLUSTER=cluster-us-central1-nodejs'
       - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
       - 'CLOUDSDK_COMPUTE_REGION=us-central1'
-    volumes:
-      - name: 'workspace'
-        path: /workspace
     waitFor: ['Check if deployment exists']
 
 options:
