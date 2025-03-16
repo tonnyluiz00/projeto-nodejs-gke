@@ -1,19 +1,3 @@
-# steps:
-#   # Build the Docker image
-#   - name: 'gcr.io/cloud-builders/docker'
-#     args: ['build', '-t', 'us-central1-docker.pkg.dev/curso-terraform-tonny/hello-repo/cicd-nodejs:1.0', '.']
-#   # Push the Docker image to Artifact Registry
-#   - name: 'gcr.io/cloud-builders/docker'
-#     args: ['push', 'us-central1-docker.pkg.dev/curso-terraform-tonny/hello-repo/cicd-nodejs:1.0']
-#   # Deploy to GKE
-#   - name: 'gcr.io/cloud-builders/kubectl'
-#     args: ['rollout', 'restart', 'deployment', 'helloworld-gke']
-#     env:
-#       - CLOUDSDK_CONTAINER_CLUSTER=cluster-us-central1-nodejs
-#       - CLOUDSDK_COMPUTE_ZONE=us-central1-a
-#       - CLOUDSDK_COMPUTE_REGION=us-central1
-# options:
-#   logging: CLOUD_LOGGING_ONLY
 steps:
   # Build the Docker image
   - name: 'gcr.io/cloud-builders/docker'
@@ -36,34 +20,30 @@ steps:
   # Check if deployment exists
   - name: 'gcr.io/cloud-builders/kubectl'
     id: Check if deployment exists
-    volumes:
-      - name: 'workspace'
-        path: /workspace
     entrypoint: 'sh'
     args:
       - '-c'
       - |
         kubectl get deployment helloworld-gke -n default && DEPLOYMENT_EXISTS=true || DEPLOYMENT_EXISTS=false;
         echo "Deployment exists: $$DEPLOYMENT_EXISTS";
-        echo -e "DEPLOYMENT_EXISTS=$$DEPLOYMENT_EXISTS" >> /workspace/env_vars.txt
+        echo -e "DEPLOYMENT_EXISTS=$$DEPLOYMENT_EXISTS" > /tmp/env_vars.txt
     env:
       - 'CLOUDSDK_CONTAINER_CLUSTER=cluster-us-central1-nodejs'
       - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
       - 'CLOUDSDK_COMPUTE_REGION=us-central1'
-
+    volumes:
+      - name: 'temp-volume'
+        path: /tmp
     waitFor: ['Push']
 
   # Deploy or Restart the service
   - name: 'gcr.io/cloud-builders/kubectl'
     id: Deploy or Restart
-    volumes:
-      - name: 'workspace'
-        path: /workspace
     entrypoint: 'sh'
     args:
       - '-c'
       - |
-        if [[ "$$(cat /workspace/env_vars.txt | grep -oP '(?<=DEPLOYMENT_EXISTS=).+' )" == "true" ]]; then
+        if [[ "$$(cat /tmp/env_vars.txt | grep -oP '(?<=DEPLOYMENT_EXISTS=).+' )" == "true" ]]; then
           echo "Deployment exists. Restarting Deployment...";
           kubectl rollout restart deployment helloworld-gke -n default;
         else
@@ -74,10 +54,17 @@ steps:
       - 'CLOUDSDK_CONTAINER_CLUSTER=cluster-us-central1-nodejs'
       - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
       - 'CLOUDSDK_COMPUTE_REGION=us-central1'
+    volumes:
+      - name: 'temp-volume'
+        path: /tmp
     waitFor: ['Check if deployment exists']
 
 options:
   logging: CLOUD_LOGGING_ONLY
-#  substitution_option: 'ALLOW_LOOSE'
-#  dynamic_substitutions: true
+  substitution_option: 'ALLOW_LOOSE'
+  dynamic_substitutions: true
 
+volumes:
+  - name: 'temp-volume'
+    hostPath:
+      path: /tmp
