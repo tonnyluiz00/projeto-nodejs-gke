@@ -14,3 +14,4 @@ steps:
       - CLOUDSDK_COMPUTE_REGION=us-central1
 options:
   logging: CLOUD_LOGGING_ONLY
+  
