@@ -1,65 +1,17 @@
 steps:
   # Build the Docker image
   - name: 'gcr.io/cloud-builders/docker'
-    id: Build
-    args:
-      - 'build'
-      - '-t'
-      - 'us-central1-docker.pkg.dev/curso-terraform-tonny/hello-repo/cicd-nodejs:1.0'
-      - '.'
-    waitFor: ['-']
-
+    args: ['build', '-t', 'us-central1-docker.pkg.dev/curso-terraform-tonny/hello-repo/cicd-nodejs:1.0', '.']
   # Push the Docker image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
-    id: Push
-    args:
-      - 'push'
-      - 'us-central1-docker.pkg.dev/curso-terraform-tonny/hello-repo/cicd-nodejs:1.0'
-    waitFor: ['Build']
-
-  # Check if deployment exists
+    args: ['push', 'us-central1-docker.pkg.dev/curso-terraform-tonny/hello-repo/cicd-nodejs:1.0']
+  # Deploy to GKE
   - name: 'gcr.io/cloud-builders/kubectl'
-    id: Check if deployment exists
-    entrypoint: 'sh'
-    args:
-      - '-c'
-      - |
-        kubectl get deployment helloworld-gke -n default && DEPLOYMENT_EXISTS=true || DEPLOYMENT_EXISTS=false;
-        echo "Deployment exists: $DEPLOYMENT_EXISTS";
-        echo -e "DEPLOYMENT_EXISTS=$DEPLOYMENT_EXISTS" > /temp-volume/env_vars.txt
+    args: ['rollout', 'restart', 'deployment', 'helloworld-gke']
     env:
-      - 'CLOUDSDK_CONTAINER_CLUSTER=cluster-us-central1-nodejs'
-      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
-      - 'CLOUDSDK_COMPUTE_REGION=us-central1'
-    volumes:
-      - name: 'temp-volume'
-        path: /temp-volume
-    waitFor: ['Push']
-
-  # Deploy or Restart the service
-  - name: 'gcr.io/cloud-builders/kubectl'
-    id: Deploy or Restart
-    entrypoint: 'sh'
-    args:
-      - '-c'
-      - |
-        if [[ "$$(cat /temp-volume/env_vars.txt | grep -oP '(?<=DEPLOYMENT_EXISTS=).+' )" == "true" ]]; then
-          echo "Deployment exists. Restarting Deployment...";
-          kubectl rollout restart deployment helloworld-gke -n default;
-        else
-          echo "Deployment does not exist. Creating deployment...";
-          kubectl apply -f deployment.yaml -n default;
-        fi
-    env:
-      - 'CLOUDSDK_CONTAINER_CLUSTER=cluster-us-central1-nodejs'
-      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
-      - 'CLOUDSDK_COMPUTE_REGION=us-central1'
-    volumes:
-      - name: 'temp-volume'
-        path: /temp-volume
-    waitFor: ['Check if deployment exists']
-
+      - CLOUDSDK_CONTAINER_CLUSTER=cluster-us-central1-nodejs
+      - CLOUDSDK_COMPUTE_ZONE=us-central1-a
+      - CLOUDSDK_COMPUTE_REGION=us-central1
 options:
   logging: CLOUD_LOGGING_ONLY
-  substitution_option: 'ALLOW_LOOSE'
-  dynamic_substitutions: true
+  
