@@ -80,7 +80,3 @@ options:
 #  substitution_option: 'ALLOW_LOOSE'
 #  dynamic_substitutions: true
 
-volumes:
-  - name: 'workspace'
-    hostPath:
-      path: /tmp/workspace
