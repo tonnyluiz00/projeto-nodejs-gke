@@ -26,14 +26,14 @@ steps:
       - |
         kubectl get deployment helloworld-gke -n default && DEPLOYMENT_EXISTS=true || DEPLOYMENT_EXISTS=false;
         echo "Deployment exists: $$DEPLOYMENT_EXISTS";
-        echo -e "DEPLOYMENT_EXISTS=$$DEPLOYMENT_EXISTS" > /tmp/env_vars.txt
+        echo -e "DEPLOYMENT_EXISTS=$$DEPLOYMENT_EXISTS" > /temp-volume/env_vars.txt
     env:
       - 'CLOUDSDK_CONTAINER_CLUSTER=cluster-us-central1-nodejs'
       - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
       - 'CLOUDSDK_COMPUTE_REGION=us-central1'
     volumes:
       - name: 'temp-volume'
-        path: /tmp
+        path: /temp-volume
     waitFor: ['Push']
 
   # Deploy or Restart the service
@@ -43,7 +43,7 @@ steps:
     args:
       - '-c'
       - |
-        if [[ "$$(cat /tmp/env_vars.txt | grep -oP '(?<=DEPLOYMENT_EXISTS=).+' )" == "true" ]]; then
+        if [[ "$$(cat /temp-volume/env_vars.txt | grep -oP '(?<=DEPLOYMENT_EXISTS=).+' )" == "true" ]]; then
           echo "Deployment exists. Restarting Deployment...";
           kubectl rollout restart deployment helloworld-gke -n default;
         else
@@ -56,15 +56,10 @@ steps:
       - 'CLOUDSDK_COMPUTE_REGION=us-central1'
     volumes:
       - name: 'temp-volume'
-        path: /tmp
+        path: /temp-volume
     waitFor: ['Check if deployment exists']
 
 options:
   logging: CLOUD_LOGGING_ONLY
   substitution_option: 'ALLOW_LOOSE'
   dynamic_substitutions: true
-
-volumes:
-  - name: 'temp-volume'
-    hostPath:
-      path: /tmp
